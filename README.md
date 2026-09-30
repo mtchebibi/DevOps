@@ -26,4 +26,6 @@ git pull
 git add .
 git commit -m "Message"
 git push origin main
+
+git status #afficher état actuelle
 ```
