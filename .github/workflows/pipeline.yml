@@ -1,50 +1,24 @@
-name: DevOps Pipeline
 
-on:
-  push:
-  workflow_dispatch:
-    inputs:
-      number:
-        description: "Nombre de départ pour l'exercice de calcul"
-        required: false
-        default: "64"
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-env:
-  NUMBER: ${{ inputs.number || vars.NUMBER || '64' }}
-
-jobs:
-  hello:
-    name: Hello World
-    runs-on: ubuntu-latest
-    steps:
-      - name: Afficher Hello World
-        run: echo "Hello World"
-
-  nom:
-    name: Afficher le nom
-    runs-on: ubuntu-latest
-    steps:
-      - name: Afficher le nom
-        run: echo "Nom : ${{ vars.NOM }}"
+    
+  
+        run: |
+          echo "Nom : ${{ vars.NOM }}"
 
   prenom:
     name: Afficher le prénom
     runs-on: ubuntu-latest
     steps:
       - name: Afficher le prénom
-        run: echo "Prénom : ${{ vars.PRENOM }}"
+        run: |
+          echo "Prénom : ${{ vars.PRENOM }}"
 
   email:
     name: Afficher l'email
     runs-on: ubuntu-latest
     steps:
       - name: Afficher l'email
-        run: echo "Email : ${{ vars.EMAIL }}"
+        run: |
+          echo "Email : ${{ vars.EMAIL }}"
 
   python:
     name: Script Python
@@ -66,7 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Afficher la branche
-        run: echo "Branche courante : $GITHUB_REF_NAME"
+        run: |
+          echo "Branche courante : $GITHUB_REF_NAME"
 
   calcul:
     name: Calcul Dev / Val / Prod
@@ -151,3 +126,4 @@ jobs:
       - name: Déployer sur GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
