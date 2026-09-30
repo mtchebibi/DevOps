@@ -9,16 +9,21 @@ git clone git@github.com:mtchebibi/DevOps.git
 ## Transformation sur les branches
 
 ```
-git switch -c sub-ranche
-git checkout main
+git switch -c nom_de_la_branche         #changer branche
+git checkout main                       #revenir main
 
-git branche
+git branche                             #afficher branche
 
-git merge sub-ranche
+git merge nom_de_la_branche             #fusionner branche
+
+git branche -d nom_de_la_branche        #delete
 ```
 
 ## Communication serveur distant
 
 ```
+git pull
+git add .
+git commit -m "Message"
 git push origin main
 ```
