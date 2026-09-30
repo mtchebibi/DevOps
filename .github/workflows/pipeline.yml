@@ -1,0 +1,153 @@
+name: DevOps Pipeline
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      number:
+        description: "Nombre de départ pour l'exercice de calcul"
+        required: false
+        default: "64"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  NUMBER: ${{ inputs.number || vars.NUMBER || '64' }}
+
+jobs:
+  hello:
+    name: Hello World
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afficher Hello World
+        run: echo "Hello World"
+
+  nom:
+    name: Afficher le nom
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afficher le nom
+        run: echo "Nom : ${{ vars.NOM }}"
+
+  prenom:
+    name: Afficher le prénom
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afficher le prénom
+        run: echo "Prénom : ${{ vars.PRENOM }}"
+
+  email:
+    name: Afficher l'email
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afficher l'email
+        run: echo "Email : ${{ vars.EMAIL }}"
+
+  python:
+    name: Script Python
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Exécuter le script
+        run: python scripts/commit_success.py
+
+  branch:
+    name: Branche courante
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afficher la branche
+        run: echo "Branche courante : $GITHUB_REF_NAME"
+
+  calcul:
+    name: Calcul Dev / Val / Prod
+    if: ${{ github.ref_name == 'Dev' || github.ref_name == 'Val' || github.ref_name == 'Prod' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier le nombre
+        shell: bash
+        run: |
+          if ! [[ "$NUMBER" =~ ^-?[0-9]+$ ]]; then
+            echo "Erreur : NUMBER doit être un entier."
+            exit 1
+          fi
+          echo "Nombre de départ : $NUMBER"
+
+      - name: Étape Dev - division par 2
+        id: dev
+        shell: bash
+        run: |
+          result=$(( NUMBER / 2 ))
+          echo "Dev : $NUMBER / 2 = $result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+          if (( result % 2 != 0 )); then
+            echo "Résultat impair : arrêt de la pipeline."
+            exit 1
+          fi
+
+      - name: Étape Val - division par 4
+        if: ${{ github.ref_name == 'Val' || github.ref_name == 'Prod' }}
+        id: val
+        shell: bash
+        env:
+          DEV_RESULT: ${{ steps.dev.outputs.result }}
+        run: |
+          result=$(( DEV_RESULT / 4 ))
+          echo "Val : $DEV_RESULT / 4 = $result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+          if (( result % 2 != 0 )); then
+            echo "Résultat impair : arrêt de la pipeline."
+            exit 1
+          fi
+
+      - name: Étape Prod - division par 8
+        if: ${{ github.ref_name == 'Prod' }}
+        shell: bash
+        env:
+          VAL_RESULT: ${{ steps.val.outputs.result }}
+        run: |
+          result=$(( VAL_RESULT / 8 ))
+          echo "Prod : $VAL_RESULT / 8 = $result"
+
+  deploy-pages:
+    name: Déploiement GitHub Pages
+    if: ${{ github.ref_name == 'Prod' }}
+    needs:
+      - hello
+      - nom
+      - prenom
+      - email
+      - python
+      - branch
+      - calcul
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Configurer GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Préparer l'artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
