@@ -1,0 +1,31 @@
+---
+# Déploie un serveur web Nginx contenant la page Hello World du TP.
+# Méthode : conteneur Docker (fonctionne sans root, pas besoin de sudo/apt).
+# - localhost:8081 -> Nginx déployé par Ansible (hello-ansible)
+# - localhost:8080 -> conteneur manuel issu du Dockerfile (hello-docker, voir README)
+- name: Deployer Nginx Hello World
+  hosts: web
+  gather_facts: false
+  tasks:
+    - name: S'assurer que le dossier du site existe
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../site/index.html"
+      register: site_index
+
+    - name: Verifier la presence de site/index.html
+      ansible.builtin.assert:
+        that:
+          - site_index.stat.exists
+        fail_msg: "site/index.html introuvable depuis {{ playbook_dir }}"
+
+    - name: Lancer le conteneur Nginx Hello World
+      community.docker.docker_container:
+        name: hello-ansible
+        image: nginx:1.27-alpine
+        state: started
+        restart_policy: unless-stopped
+        pull: missing
+        ports:
+          - "8081:80"
+        volumes:
+          - "{{ playbook_dir }}/../site/index.html:/usr/share/nginx/html/index.html:ro"

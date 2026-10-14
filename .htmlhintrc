@@ -1,0 +1,8 @@
+{
+  "doctype-first": true,
+  "title-require": true,
+  "tag-pair": true,
+  "attr-lowercase": true,
+  "tagname-lowercase": true,
+  "empty-tag-not-self-closed": false
+}

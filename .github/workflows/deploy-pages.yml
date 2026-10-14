@@ -18,7 +18,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    name: Lint avant deploiement
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Lint HTML (Hello World)
+        run: npx --yes htmlhint@1.1.4 "site/**/*.html"
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
+      - name: Lint YAML Ansible + syntax-check playbook
+        run: |
+          pip install yamllint ansible-core
+          yamllint ansible/playbook.yml
+          ansible-galaxy collection install -r ansible/requirements.yml
+          ansible-playbook --syntax-check -i ansible/inventory.ini ansible/playbook.yml
+
   build:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
