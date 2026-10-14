@@ -1,0 +1,45 @@
+name: Deploy Hello World to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Droits requis par le déploiement GitHub Pages officiel
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un seul déploiement Pages à la fois
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Configurer GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Uploader l'application Hello World
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Dossier contenant le fichier index.html
+          path: site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
