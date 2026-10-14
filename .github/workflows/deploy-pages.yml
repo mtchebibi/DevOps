@@ -26,6 +26,8 @@ jobs:
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Uploader l'application Hello World
         uses: actions/upload-pages-artifact@v3
