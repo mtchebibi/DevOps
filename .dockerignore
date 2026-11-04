@@ -1,6 +1,11 @@
 .git
 .github
 ansible
+k8s
 scripts
 justfile
 README.md
+.gitignore
+.dockerignore
+.htmlhintrc
+.yamllint.yml

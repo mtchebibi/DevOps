@@ -7,24 +7,25 @@ on:
       - main
   workflow_dispatch:
 
-# Droits requis pour publier sur GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Un seul déploiement Pages à la fois
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
   lint:
-    name: Lint
+    name: Lint & Validation
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
+
+      - name: Lint HTML
+        run: npx --yes htmlhint@1.1.4 site/index.html
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
@@ -35,9 +36,9 @@ jobs:
       - name: Lint YAML
         run: |
           pip install yamllint
-          yamllint ansible/playbook.yml .github/workflows/*.yml
+          yamllint ansible/playbook.yml .github/workflows/*.yml k8s/*.yaml
 
-      - name: Syntax-check du playbook Ansible
+      - name: Syntax-check Ansible
         run: |
           pip install ansible-core
           ansible-galaxy collection install -r ansible/requirements.yml
@@ -50,12 +51,8 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/devops-hello
     steps:
-      - name: Récupérer le dépôt (historique complet)
+      - name: Récupérer le dépôt
         uses: actions/checkout@v4
-        with:
-          # Nécessaire pour restaurer site/index.html lors du premier run
-          # qui suit sa suppression du dépôt.
-          fetch-depth: 0
 
       - name: Vérifier les secrets Docker Hub
         env:
@@ -73,50 +70,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Préparer le fichier HTML
-        run: |
-          set -euo pipefail
-
-          if [ -f site/index.html ]; then
-            echo "site/index.html est présent dans le dépôt."
-            exit 0
-          fi
-
-          mkdir -p site
-
-          # Source de vérité : l'image déjà publiée sur Docker Hub.
-          if docker pull "$IMAGE_NAME:latest" >/dev/null 2>&1; then
-            echo "HTML absent du dépôt : extraction depuis $IMAGE_NAME:latest."
-            container=$(docker create "$IMAGE_NAME:latest")
-            docker cp "$container:/usr/share/nginx/html/index.html" site/index.html
-            docker rm -f "$container" >/dev/null
-          else
-            # Premier run après suppression : on repart de la dernière
-            # version du fichier présente dans l'historique Git.
-            echo "Aucune image publiée : restauration depuis l'historique Git."
-            deletion=$(git log --diff-filter=D --format=%H -1 -- site/index.html || true)
-            if [ -n "$deletion" ]; then
-              git show "${deletion}^:site/index.html" > site/index.html
-            else
-              last=$(git log -1 --format=%H -- site/index.html || true)
-              if [ -z "$last" ]; then
-                echo "::error::Impossible de retrouver site/index.html."
-                exit 1
-              fi
-              git show "${last}:site/index.html" > site/index.html
-            fi
-          fi
-
-          test -s site/index.html
-
-      - name: Installer Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Vérifier le HTML
-        run: npx --yes htmlhint@1.1.4 site/index.html
-
       - name: Configurer Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -132,45 +85,16 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-  extract-html:
-    name: Extraire le HTML du conteneur
+  extract-and-deploy:
+    name: Déploiement GitHub Pages
     needs: build-and-push
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/devops-hello
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Se connecter à Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Lancer le conteneur temporaire
-        run: |
-          set -euo pipefail
-          mkdir -p _site
-          container=$(docker run -d --name hello-extract "$IMAGE_NAME:$GITHUB_SHA")
-          echo "CONTAINER_ID=$container" >> "$GITHUB_ENV"
-
-      - name: Extraire index.html
-        run: |
-          set -euo pipefail
-          docker cp "$CONTAINER_ID:/usr/share/nginx/html/index.html" _site/index.html
-          test -s _site/index.html
-          echo "Fichier extrait :"
-          cat _site/index.html
-
-      - name: Supprimer le conteneur
-        if: always()
-        run: docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
-
-      - name: Installer Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Vérifier le HTML extrait
-        run: npx --yes htmlhint@1.1.4 _site/index.html
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5
@@ -180,16 +104,8 @@ jobs:
       - name: Uploader l'artefact Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: site/
 
-  deploy:
-    name: Déployer sur GitHub Pages
-    needs: extract-html
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Déployer
         id: deployment
         uses: actions/deploy-pages@v4

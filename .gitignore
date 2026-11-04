@@ -1,6 +1,12 @@
-# Artefact de déploiement GitHub Pages
+# Artefacts de build et de déploiement
 _site/
+.cache/
+tmp.txt
 
-# HTML volontairement retiré du dépôt : il est fourni par l'image Docker
-# et restauré automatiquement par le workflow de build.
-site/index.html
+# Python
+__pycache__/
+*.pyc
+
+# Ansible
+.ansible/
+*.retry

@@ -18,6 +18,19 @@ spec:
       containers:
       - name: helloworld-container
         image: mtchebibi/devops-hello:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 80
+        - name: http
+          containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 2
+          periodSeconds: 5
