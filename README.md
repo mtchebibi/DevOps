@@ -29,3 +29,57 @@ git push origin main
 
 git status #afficher état actuelle
 ```
+
+## TP Docker Hub + GitHub Pages
+
+Le workflow `.github/workflows/deploy-pages.yml` :
+
+1. vérifie le Dockerfile et les fichiers YAML ;
+2. construit l'image et la pousse sur Docker Hub
+   (tags `latest` et `$GITHUB_SHA`) ;
+3. lance un conteneur temporaire depuis cette image et extrait
+   `/usr/share/nginx/html/index.html` ;
+4. publie ce fichier sur GitHub Pages :
+   <https://mtchebibi.github.io/DevOps/>.
+
+`site/index.html` n'est plus versionné : l'image Docker est la source de
+vérité. Au premier run après sa suppression, le job de build restaure le
+fichier depuis l'historique Git ; les runs suivants l'extraient directement
+de l'image publiée.
+
+### Configuration à faire une fois
+
+1. Créer un compte Docker Hub (offre Free) :
+   <https://app.docker.com/signup/>.
+2. Créer un dépôt **privé** `devops-hello` dans Docker Hub.
+3. Créer un token Docker Hub (Account settings → Personal access tokens)
+   avec les droits **Read & Write**.
+4. Ajouter les secrets GitHub du dépôt :
+   - `DOCKERHUB_USERNAME` : nom d'utilisateur Docker Hub ;
+   - `DOCKERHUB_TOKEN` : token Docker Hub (pas le mot de passe).
+
+   Avec GitHub CLI :
+
+   ```bash
+   gh secret set DOCKERHUB_USERNAME --body "VOTRE_USERNAME"
+   gh secret set DOCKERHUB_TOKEN
+   ```
+
+5. Dans GitHub : **Settings → Pages → Build and deployment → Source :
+   GitHub Actions**.
+
+### Commandes utiles
+
+```bash
+# Lancer le pipeline manuellement
+gh workflow run deploy-pages.yml
+
+# Suivre le dernier run
+gh run watch
+
+# Se connecter à Docker Hub si nécessaire, puis vérifier l'image publiée
+docker login
+docker pull VOTRE_USERNAME/devops-hello:latest
+```
+
+Si le dépôt Docker Hub change de nom, adaptez `IMAGE_NAME` dans le workflow.

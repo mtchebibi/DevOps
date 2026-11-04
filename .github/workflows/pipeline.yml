@@ -1,6 +1,6 @@
-
-    
-  
+---
+# Le build/push Docker et le déploiement GitHub Pages sont dans
+# .github/workflows/deploy-pages.yml.
 name: TP DevOps
 
 on:
@@ -116,4 +116,3 @@ jobs:
         run: |
           result=$(( VAL_RESULT / 8 ))
           echo "Résultat Prod : $result"
-

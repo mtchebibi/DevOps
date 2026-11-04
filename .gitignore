@@ -1,0 +1,6 @@
+# Artefact de déploiement GitHub Pages
+_site/
+
+# HTML volontairement retiré du dépôt : il est fourni par l'image Docker
+# et restauré automatiquement par le workflow de build.
+site/index.html
