@@ -18,6 +18,14 @@
           - site_index.stat.exists
         fail_msg: "site/index.html introuvable depuis {{ playbook_dir }}"
 
+    # Le fichier est monte dans Nginx : il doit etre lisible par l'utilisateur
+    # nginx du conteneur, sinon Nginx repond 403 Forbidden.
+    - name: Rendre la page lisible par Nginx
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../site/index.html"
+        state: file
+        mode: "0644"
+
     - name: Lancer le conteneur Nginx Hello World
       community.docker.docker_container:
         name: hello-ansible

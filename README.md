@@ -34,18 +34,14 @@ git status #afficher état actuelle
 
 Le workflow `.github/workflows/deploy-pages.yml` :
 
-1. vérifie le Dockerfile et les fichiers YAML ;
+1. vérifie le HTML, le Dockerfile, les fichiers YAML et la syntaxe Ansible ;
 2. construit l'image et la pousse sur Docker Hub
    (tags `latest` et `$GITHUB_SHA`) ;
-3. lance un conteneur temporaire depuis cette image et extrait
-   `/usr/share/nginx/html/index.html` ;
-4. publie ce fichier sur GitHub Pages :
+3. publie le site sur GitHub Pages :
    <https://mtchebibi.github.io/DevOps/>.
 
-`site/index.html` n'est plus versionné : l'image Docker est la source de
-vérité. Au premier run après sa suppression, le job de build restaure le
-fichier depuis l'historique Git ; les runs suivants l'extraient directement
-de l'image publiée.
+`site/index.html` est versionné et sert de source commune à l'image Docker
+et à GitHub Pages.
 
 ### Configuration à faire une fois
 
